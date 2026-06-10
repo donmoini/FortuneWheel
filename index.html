@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Fortune Wheel</title>
+  <title>Spin to Win</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -208,11 +208,50 @@
       margin-right: auto;
     }
     #reset-btn:hover { background: #e2b96f22; }
+
+    #hide-btn {
+      margin-top: 10px;
+      padding: 6px 22px;
+      font-size: 0.85rem;
+      background: transparent;
+      color: #ffffff55;
+      border: 1px solid #ffffff22;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #hide-btn:hover { background: #ffffff11; color: #fff; }
+
+    /* Applaud overlay */
+    #clap-overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 100;
+      overflow: hidden;
+    }
+
+    .clap-hand {
+      position: absolute;
+      bottom: -10vh;
+      user-select: none;
+      animation: clap-rise linear forwards;
+    }
+
+    @keyframes clap-rise {
+      0%   { transform: translateY(0);      opacity: 0; }
+      10%  { opacity: 1; }
+      80%  { opacity: 1; }
+      100% { transform: translateY(-130vh); opacity: 0; }
+    }
   </style>
 </head>
 <body>
 
-<h1>Fortune Wheel</h1>
+<h1>Spin to Win</h1>
 
 <div id="wheel-container">
   <div id="pointer"></div>
@@ -226,8 +265,11 @@
 <div id="segments-left"></div>
 
 <div id="editor-section">
-  <h2>Redigera alternativ</h2>
-  <div id="label-editor"></div>
+  <div id="editor-fields">
+    <h2>Redigera alternativ</h2>
+    <div id="label-editor"></div>
+    <button id="hide-btn">Dölj alternativ</button>
+  </div>
   <button id="reset-btn">Återställ hjulet</button>
 </div>
 
@@ -248,14 +290,16 @@
     { label: 'Alternativ 8', desc: 'Beskriv vad man vinner här.' },
   ];
 
-  const canvas  = document.getElementById('wheel');
-  const ctx     = canvas.getContext('2d');
-  const spinBtn = document.getElementById('spin-btn');
-  const resultEl= document.getElementById('result');
-  const segsLeft= document.getElementById('segments-left');
-  const editor  = document.getElementById('label-editor');
-  const resetBtn= document.getElementById('reset-btn');
-  const cap     = document.getElementById('center-cap');
+  const canvas      = document.getElementById('wheel');
+  const ctx         = canvas.getContext('2d');
+  const spinBtn     = document.getElementById('spin-btn');
+  const resultEl    = document.getElementById('result');
+  const segsLeft    = document.getElementById('segments-left');
+  const editor      = document.getElementById('label-editor');
+  const resetBtn    = document.getElementById('reset-btn');
+  const hideBtn     = document.getElementById('hide-btn');
+  const editorFields= document.getElementById('editor-fields');
+  const cap         = document.getElementById('center-cap');
 
   // Master list (always 8 entries, tracks label+desc per color slot)
   let masterData = [];
@@ -273,6 +317,8 @@
     segments = masterData.map(d => ({ ...d }));
     angle = 0;
     buildEditor();
+    editorFields.style.display = '';
+    hideBtn.style.display = '';
     draw();
     setIdleResult('Tryck på Snurra för att börja!');
     updateSegsLeft();
@@ -444,6 +490,28 @@
       <div class="result-title">🎉 ${escHtml(winner.label)}</div>
       ${winner.desc ? `<div class="result-desc">${escHtml(winner.desc)}</div>` : ''}
     `;
+    triggerClaps();
+  }
+
+  function triggerClaps() {
+    const overlay = document.createElement('div');
+    overlay.id = 'clap-overlay';
+    const count = 10 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < count; i++) {
+      const span = document.createElement('span');
+      span.className = 'clap-hand';
+      span.textContent = '👏';
+      const size = 2 + Math.random() * 2;
+      const dur  = 1.4 + Math.random() * 0.8;
+      const delay= Math.random() * 0.7;
+      span.style.left             = `${5 + Math.random() * 90}%`;
+      span.style.fontSize         = `${size}rem`;
+      span.style.animationDuration= `${dur}s`;
+      span.style.animationDelay   = `${delay}s`;
+      overlay.appendChild(span);
+    }
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.remove(), 3200);
   }
 
   function setIdleResult(msg) {
@@ -463,6 +531,10 @@
   spinBtn.addEventListener('click', spin);
   cap.addEventListener('click', spin);
   resetBtn.addEventListener('click', initSegments);
+  hideBtn.addEventListener('click', () => {
+    editorFields.style.display = 'none';
+    hideBtn.style.display = 'none';
+  });
 
   initSegments();
 </script>
