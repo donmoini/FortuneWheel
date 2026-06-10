@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fortune Wheel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a2e;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      gap: 20px;
+      padding: 32px 16px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #e2b96f;
+      text-shadow: 0 0 20px #e2b96f88;
+    }
+
+    #wheel-container {
+      position: relative;
+      width: 420px;
+      height: 420px;
+    }
+
+    #wheel {
+      border-radius: 50%;
+      box-shadow: 0 0 40px #0008, 0 0 0 6px #e2b96f, 0 0 0 10px #7b5e2a;
+    }
+
+    #pointer {
+      position: absolute;
+      top: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 14px solid transparent;
+      border-right: 14px solid transparent;
+      border-top: 32px solid #e2b96f;
+      filter: drop-shadow(0 2px 4px #0008);
+      z-index: 10;
+    }
+
+    #center-cap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #fff5, #e2b96f);
+      border: 4px solid #7b5e2a;
+      box-shadow: 0 2px 8px #0006;
+      z-index: 10;
+      cursor: pointer;
+    }
+
+    #spin-btn {
+      padding: 14px 48px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, #e2b96f, #c8922a);
+      color: #1a1a2e;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px #e2b96f44;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    #spin-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 28px #e2b96f66;
+    }
+
+    #spin-btn:active:not(:disabled) { transform: translateY(0); }
+
+    #spin-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Result banner */
+    #result {
+      text-align: center;
+      padding: 16px 32px;
+      border-radius: 14px;
+      background: #ffffff11;
+      border: 1px solid #ffffff22;
+      min-width: 340px;
+      max-width: 500px;
+      transition: opacity 0.3s;
+    }
+
+    #result .result-idle {
+      font-size: 1.1rem;
+      opacity: 0.7;
+    }
+
+    #result.winner {
+      background: linear-gradient(135deg, #e2b96f22, #c8922a22);
+      border-color: #e2b96f;
+      animation: pulse 0.6s ease-out;
+    }
+
+    #result .result-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #e2b96f;
+      margin-bottom: 6px;
+    }
+
+    #result .result-desc {
+      font-size: 1rem;
+      color: #ffffffcc;
+      line-height: 1.5;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(0.9); opacity: 0; }
+      60%  { transform: scale(1.05); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    #segments-left {
+      font-size: 0.85rem;
+      opacity: 0.5;
+    }
+
+    /* Editor */
+    #editor-section {
+      width: 560px;
+      max-width: 100%;
+    }
+
+    #editor-section h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.5;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    #label-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .seg-row {
+      display: grid;
+      grid-template-columns: 14px 1fr 1.6fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .seg-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .seg-row input {
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid #ffffff22;
+      background: #ffffff11;
+      color: #fff;
+      font-size: 0.85rem;
+      width: 100%;
+    }
+
+    .seg-row input::placeholder { opacity: 0.4; }
+
+    .seg-row input:focus {
+      outline: none;
+      border-color: #e2b96f;
+    }
+
+    #reset-btn {
+      margin-top: 10px;
+      padding: 8px 28px;
+      font-size: 0.9rem;
+      background: transparent;
+      color: #e2b96f;
+      border: 1px solid #e2b96f;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    #reset-btn:hover { background: #e2b96f22; }
+  </style>
+</head>
+<body>
+
+<h1>Fortune Wheel</h1>
+
+<div id="wheel-container">
+  <div id="pointer"></div>
+  <canvas id="wheel" width="420" height="420"></canvas>
+  <div id="center-cap"></div>
+</div>
+
+<div id="result"><span class="result-idle">Tryck på Snurra för att börja!</span></div>
+
+<button id="spin-btn">Snurra</button>
+<div id="segments-left"></div>
+
+<div id="editor-section">
+  <h2>Redigera alternativ</h2>
+  <div id="label-editor"></div>
+  <button id="reset-btn">Återställ hjulet</button>
+</div>
+
+<script>
+  const COLORS = [
+    '#e74c3c','#e67e22','#f1c40f','#2ecc71',
+    '#1abc9c','#3498db','#9b59b6','#e91e8c'
+  ];
+
+  const DEFAULTS = [
+    { label: 'Alternativ 1', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 2', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 3', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 4', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 5', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 6', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 7', desc: 'Beskriv vad man vinner här.' },
+    { label: 'Alternativ 8', desc: 'Beskriv vad man vinner här.' },
+  ];
+
+  const canvas  = document.getElementById('wheel');
+  const ctx     = canvas.getContext('2d');
+  const spinBtn = document.getElementById('spin-btn');
+  const resultEl= document.getElementById('result');
+  const segsLeft= document.getElementById('segments-left');
+  const editor  = document.getElementById('label-editor');
+  const resetBtn= document.getElementById('reset-btn');
+  const cap     = document.getElementById('center-cap');
+
+  // Master list (always 8 entries, tracks label+desc per color slot)
+  let masterData = [];
+  // Active wheel segments (subset of masterData that haven't been removed)
+  let segments   = [];
+  let angle      = 0;
+  let spinning   = false;
+
+  function initSegments() {
+    masterData = DEFAULTS.map((d, i) => ({
+      label: d.label,
+      desc:  d.desc,
+      color: COLORS[i],
+    }));
+    segments = masterData.map(d => ({ ...d }));
+    angle = 0;
+    buildEditor();
+    draw();
+    setIdleResult('Tryck på Snurra för att börja!');
+    updateSegsLeft();
+    spinBtn.disabled = false;
+  }
+
+  function buildEditor() {
+    editor.innerHTML = '';
+    masterData.forEach((data, i) => {
+      const row = document.createElement('div');
+      row.className = 'seg-row';
+
+      const swatch = document.createElement('div');
+      swatch.className = 'seg-swatch';
+      swatch.style.background = COLORS[i];
+
+      const labelInp = document.createElement('input');
+      labelInp.type = 'text';
+      labelInp.value = data.label;
+      labelInp.placeholder = `Rubrik ${i + 1}`;
+      labelInp.addEventListener('input', () => {
+        masterData[i].label = labelInp.value || `Alternativ ${i + 1}`;
+        // sync to active segment if still on wheel
+        const seg = segments.find(s => s.color === COLORS[i]);
+        if (seg) seg.label = masterData[i].label;
+        draw();
+      });
+
+      const descInp = document.createElement('input');
+      descInp.type = 'text';
+      descInp.value = data.desc;
+      descInp.placeholder = 'Beskrivning av vinsten…';
+      descInp.addEventListener('input', () => {
+        masterData[i].desc = descInp.value;
+        const seg = segments.find(s => s.color === COLORS[i]);
+        if (seg) seg.desc = masterData[i].desc;
+      });
+
+      row.appendChild(swatch);
+      row.appendChild(labelInp);
+      row.appendChild(descInp);
+      editor.appendChild(row);
+    });
+  }
+
+  function draw(rot = angle) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const r  = cx - 4;
+    const n  = segments.length;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (n === 0) {
+      ctx.fillStyle = '#333';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 22px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Hjulet är tomt!', cx, cy);
+      return;
+    }
+
+    const slice = (2 * Math.PI) / n;
+
+    segments.forEach((seg, i) => {
+      const start = rot + i * slice;
+      const end   = start + slice;
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, r, start, end);
+      ctx.closePath();
+      ctx.fillStyle = seg.color;
+      ctx.fill();
+      ctx.strokeStyle = '#1a1a2e';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(start + slice / 2);
+
+      const textR = r * 0.62;
+      ctx.shadowColor = '#0005';
+      ctx.shadowBlur  = 4;
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${n > 6 ? 13 : 15}px Segoe UI`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const maxW  = r * 0.52;
+      const words = seg.label.split(' ');
+      let lines = [], cur = '';
+      words.forEach(w => {
+        const test = cur ? cur + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && cur) {
+          lines.push(cur); cur = w;
+        } else { cur = test; }
+      });
+      lines.push(cur);
+
+      const lineH = 16;
+      lines.forEach((line, li) => {
+        ctx.fillText(line, textR, (li - (lines.length - 1) / 2) * lineH);
+      });
+
+      ctx.restore();
+    });
+  }
+
+  function spin() {
+    if (spinning || segments.length === 0) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    setIdleResult('...');
+
+    const extraRotations = (5 + Math.random() * 5) * 2 * Math.PI;
+    const landing        = Math.random() * 2 * Math.PI;
+    const target         = angle + extraRotations + landing;
+    const duration       = 3500 + Math.random() * 1500;
+    const startTime      = performance.now();
+    const startAngle     = angle;
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+    function frame(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      angle = startAngle + (target - startAngle) * easeOut(t);
+      draw(angle);
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        angle = angle % (2 * Math.PI);
+        finalize();
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function finalize() {
+    const n     = segments.length;
+    const slice = (2 * Math.PI) / n;
+    let   ptr   = ((-Math.PI / 2) - angle + 4 * Math.PI) % (2 * Math.PI);
+    const idx   = Math.floor(ptr / slice) % n;
+    const winner = segments[idx];
+
+    showWinner(winner);
+
+    setTimeout(() => {
+      segments.splice(idx, 1);
+      draw();
+      updateSegsLeft();
+      spinning = false;
+      spinBtn.disabled = segments.length === 0;
+      if (segments.length === 0) {
+        setTimeout(() => setIdleResult('Hjulet är tomt! Återställ för att spela igen.'), 400);
+      }
+    }, 2200);
+  }
+
+  function showWinner(winner) {
+    resultEl.className = 'winner';
+    resultEl.innerHTML = `
+      <div class="result-title">🎉 ${escHtml(winner.label)}</div>
+      ${winner.desc ? `<div class="result-desc">${escHtml(winner.desc)}</div>` : ''}
+    `;
+  }
+
+  function setIdleResult(msg) {
+    resultEl.className = '';
+    resultEl.innerHTML = `<span class="result-idle">${escHtml(msg)}</span>`;
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function updateSegsLeft() {
+    const n = segments.length;
+    segsLeft.textContent = n > 0 ? `${n} alternativ kvar` : '';
+  }
+
+  spinBtn.addEventListener('click', spin);
+  cap.addEventListener('click', spin);
+  resetBtn.addEventListener('click', initSegments);
+
+  initSegments();
+</script>
+</body>
+</html>
